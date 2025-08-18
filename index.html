@@ -5,6 +5,99 @@
   <!-- Supabase client (global) -->
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const SUPABASE_URL = "https://pgohlxaeakbxiqekkwrl.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI";
+
+  window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  window.SUPABASE_URL = SUPABASE_URL;
+  window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+  console.log("[BUILD] supabase init injected");
+</script>
+2) Hydrate localStorage from Supabase (the “panic button”)
+html
+Copy
+Edit
+<!-- Hydrate localStorage from Supabase so the UI renders immediately -->
+<script type="module">
+  const sb = window.supabase;
+  if (!sb) {
+    console.error("Supabase not initialized");
+  } else {
+    (async () => {
+      console.log("[Hydrate] pulling data from Supabase…");
+
+      // helper: normalize to yyyy-mm-dd
+      const toDate = d => d ? String(d).slice(0,10) : null;
+
+      // 1) fetch everything you need
+      const [{ data: clients, error: ec },
+             { data: tasks,   error: et },
+             { data: events,  error: ee }] = await Promise.all([
+        sb.from("clients").select("id,name,color,status"),
+        sb.from("tasks").select("id,title,client_id,due_date,phase,assignee,created_at"),
+        sb.from("events").select("id,title,client_id,start_date,end_date,created_at")
+      ]);
+
+      if (ec) console.error("[Hydrate] clients error:", ec);
+      if (et) console.error("[Hydrate] tasks error:", et);
+      if (ee) console.error("[Hydrate] events error:", ee);
+
+      // 2) map to the keys your UI expects (mm_clients/mm_tasks/mm_events)
+      const lsClients = (clients || []).map(c => ({
+        id: c.id, name: c.name,
+        color: c.color || "#888888",
+        status: (c.status || "none")
+      }));
+
+      const lsTasks = (tasks || []).map(t => ({
+        id: t.id,
+        title: t.title || "",
+        client_id: t.client_id || null,
+        // your schema requires due_date; ensure it’s a date string
+        due_date: toDate(t.due_date) || toDate(t.created_at) || toDate(new Date()),
+        phase: t.phase || "None",
+        assignee: t.assignee || null,
+        created_at: t.created_at || new Date().toISOString()
+      }));
+
+      const lsEvents = (events || []).map(e => {
+        const start = toDate(e.start_date) || toDate(e.created_at) || toDate(new Date());
+        const end   = toDate(e.end_date)   || start;
+        return {
+          id: e.id,
+          title: e.title || "",
+          client_id: e.client_id || null,
+          start_date: start,
+          end_date: end,
+          created_at: e.created_at || new Date().toISOString()
+        };
+      });
+
+      // 3) write to localStorage where your calendar already looks
+      try {
+        localStorage.setItem("mm_clients", JSON.stringify(lsClients));
+        localStorage.setItem("mm_tasks",   JSON.stringify(lsTasks));
+        localStorage.setItem("mm_events",  JSON.stringify(lsEvents));
+
+        // ensure the UI shows everything (not filtered to Ryan/Treyven accidentally)
+        localStorage.setItem("mm_view_user", "Team (All)");
+        localStorage.setItem("mm_assignee_filter", "all");
+
+        console.log("[Hydrate] wrote",
+          { clients: lsClients.length, tasks: lsTasks.length, events: lsEvents.length });
+
+        // 4) reload once so the existing UI renders the data
+        setTimeout(() => location.reload(), 300);
+      } catch (e) {
+        console.error("[Hydrate] localStorage write failed:", e);
+      }
+    })();
+  }
+</script>
+  <!-- Supabase client (global) -->
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
   const SUPABASE_URL = "https://pgohlxaeakbxiqekkwrl.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI";
   window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
