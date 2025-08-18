@@ -28,32 +28,64 @@
 
       const toDate = d => d ? String(d).slice(0,10) : null;
 
+      // Fetch data from Supabase. Request additional columns needed by the UI such as
+      // onboardDate for clients, start_date/end_date/time/estimate_hours/status for tasks,
+      // and time/phase/assignee/all_day/status for events. Some columns may be null if
+      // they are absent in your database schema. The mapping below will normalise them
+      // into the structure expected by the dashboard UI.
       const [{ data: clients }, { data: tasks }, { data: events }] = await Promise.all([
-        sb.from("clients").select("id,name,color,status"),
-        sb.from("tasks").select("id,title,client_id,due_date,phase,assignee,created_at"),
-        sb.from("events").select("id,title,client_id,start_date,end_date,created_at")
+        sb.from("clients").select("id,name,color,status,onboardDate"),
+        sb.from("tasks").select("id,title,client_id,due_date,start_date,end_date,time,phase,assignee,estimate_hours,status,created_at"),
+        sb.from("events").select("id,title,client_id,start_date,end_date,time,phase,assignee,all_day,status,created_at")
       ]);
 
+      // Map Supabase client rows to the shape expected by the UI. Ensure default
+      // values for missing fields such as colour, status and onboardDate.
       const lsClients = (clients || []).map(c => ({
-        id: c.id, name: c.name, color: c.color || "#888888", status: (c.status || "none")
+        id: c.id,
+        name: c.name || "",
+        color: c.color || "#888888",
+        status: c.status || "none",
+        onboardDate: c.onboardDate || null
       }));
 
-      const lsTasks = (tasks || []).map(t => ({
-        id: t.id,
-        title: t.title || "",
-        client_id: t.client_id || null,
-        due_date: toDate(t.due_date) || toDate(t.created_at) || toDate(new Date()),
-        phase: t.phase || "None",
-        assignee: t.assignee || null,
-        created_at: t.created_at || new Date().toISOString()
-      }));
-
-      const lsEvents = (events || []).map(e => {
-        const start = toDate(e.start_date) || toDate(e.created_at) || toDate(new Date());
-        const end   = toDate(e.end_date)   || start;
+      // Map Supabase task rows to UI structure. Convert date/time fields to ISO date
+      // strings (YYYY‑MM‑DD) and rename snake_case keys to camelCase. Provide
+      // sensible defaults for missing fields.
+      const lsTasks = (tasks || []).map(t => {
+        const startDate = t.start_date ? String(t.start_date).split('T')[0] : null;
+        const dueDate = t.due_date ? String(t.due_date).split('T')[0] : (startDate || null);
         return {
-          id: e.id, title: e.title || "", client_id: e.client_id || null,
-          start_date: start, end_date: end, created_at: e.created_at || new Date().toISOString()
+          id: t.id,
+          clientId: t.client_id || null,
+          title: t.title || "",
+          startDate: startDate,
+          dueDate: dueDate,
+          time: t.time || null,
+          phase: t.phase || "None",
+          assignee: t.assignee || null,
+          estimateHours: (typeof t.estimate_hours === 'number' ? t.estimate_hours : 1),
+          status: t.status || 'todo'
+        };
+      });
+
+      // Map Supabase event rows to UI structure. Convert start/end dates to ISO
+      // strings (YYYY‑MM‑DD) and normalise property names. Default allDay to
+      // false if missing and supply a placeholder status.
+      const lsEvents = (events || []).map(e => {
+        const startDate = e.start_date ? String(e.start_date).split('T')[0] : null;
+        const endDate   = e.end_date   ? String(e.end_date).split('T')[0]   : (startDate || null);
+        return {
+          id: e.id,
+          clientId: e.client_id || null,
+          title: e.title || "",
+          date: startDate,
+          endDate: endDate,
+          time: e.time || null,
+          phase: e.phase || "None",
+          assignee: e.assignee || null,
+          allDay: !!e.all_day,
+          status: e.status || 'todo'
         };
       });
 
