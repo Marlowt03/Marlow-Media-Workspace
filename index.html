@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,10 +13,7 @@
   window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
   console.log("[BUILD] supabase init injected");
 </script>
-2) Hydrate localStorage from Supabase (the “panic button”)
-html
-Copy
-Edit
+<!-- Hydrate localStorage from Supabase (the “panic button”) -->
 <!-- Hydrate localStorage from Supabase so the UI renders immediately -->
 <script type="module">
   const sb = window.supabase;
@@ -94,16 +90,6 @@ Edit
       }
     })();
   }
-</script>
-  <!-- Supabase client (global) -->
-<script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  const SUPABASE_URL = "https://pgohlxaeakbxiqekkwrl.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI";
-  window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  window.SUPABASE_URL = SUPABASE_URL;
-  window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
-  console.log("[BUILD] supabase init injected");
 </script>
 <!-- ===== TEMP: force no-auth mode so UI renders immediately ===== -->
 <script type="module">
