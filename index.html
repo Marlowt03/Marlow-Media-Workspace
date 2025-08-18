@@ -92,45 +92,22 @@
       localStorage.setItem("mm_clients", JSON.stringify(lsClients));
       localStorage.setItem("mm_tasks",   JSON.stringify(lsTasks));
       localStorage.setItem("mm_events",  JSON.stringify(lsEvents));
-      localStorage.setItem("mm_view_user", "Team (All)");
-      localStorage.setItem("mm_assignee_filter", "all");
+      // Do not override view or assignee filters here. These will be set via application logic.
 
       // Mark done so we never loop
       localStorage.setItem('mm_hydrated_once', 'true');
 
-      // Only reload if we actually wrote any data
+      // Previously this block reloaded the page once data was written. Reloading
+      // the page can cause an infinite loop if the hydration script runs
+      // repeatedly. Instead, simply log completion and allow the normal
+      // application logic to run using the newly populated localStorage.
       if (lsClients.length || lsTasks.length || lsEvents.length) {
-        console.log("[Hydrate] wrote & reloading once…");
-        setTimeout(() => location.reload(), 150);
+        console.log("[Hydrate] wrote data; proceeding without reload.");
       } else {
-        console.log("[Hydrate] nothing to write; no reload");
+        console.log("[Hydrate] nothing to write; proceeding without reload.");
       }
     })();
   }
-</script>
-<!-- ===== TEMP: force no-auth mode so UI renders immediately ===== -->
-<script type="module">
-  // Ensure the supabase client exists
-  if (!window.supabase) {
-    console.error("Supabase not initialized");
-  }
-
-  // Hard-set a current user object for your UI to pick up (bypass real auth)
-  window.CURRENT_USER = {
-    id: "treyven-dev",
-    name: "Treyven Marlow",
-    email: "treyven@example.com",
-    role: "owner"
-  };
-
-  // Force all filters to Team(All) so nothing is hidden by assignee
-  try {
-    localStorage.setItem("mm_view_user", "Team (All)");
-    localStorage.setItem("mm_assignee_filter", "all");
-  } catch {}
-
-  // Tiny sanity log
-  console.log("[TEMP] No-auth mode enabled. Rendering Team (All).");
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -4077,43 +4054,10 @@ window.openAssignModal = function(taskId) {
   </div>
   <!-- Supabase Auth script to power the login overlay -->
   <script type="module">
-    // Initialize Supabase using explicit credentials. Because this file
-    // runs as a standalone HTML page without a build step, import.meta.env
-    // is unavailable in production. To ensure Supabase works on the
-    // deployed site, we hardcode the URL and anon key here. If you change
-    // your Supabase project or rotate keys, update these values.
-    const sbUrl = 'https://pgohlxaeakbxiqekkwrl.supabase.co';
-    const sbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI';
-    let supabaseInstance;
-    try {
-      supabaseInstance = createClient(sbUrl, sbKey);
-    } catch (err) {
-      console.warn('Supabase initialization failed:', err);
-      // Provide a minimal stub so calls to supabase.functions.invoke() do not crash
-      supabaseInstance = {
-        functions: {
-          invoke: async () => ({ data: null, error: { message: 'Supabase disabled locally' } })
-        }
-      };
-    }
-    // Expose the Supabase client globally so it can be used by non‑module
-    // scripts (e.g. generateVideoIdeas). Without this assignment, the
-    // client would be scoped only to this module and unavailable in
-    // other functions defined outside of the module context.
-    window.supabase = supabaseInstance;
-
-    // Persist the Supabase URL and anonymous key on the window so other
-    // scripts can construct fallback URLs for function invocation when
-    // supabase.functions.invoke fails (for example, due to CORS or network
-    // restrictions). These come from your Vite environment variables or
-    // fallback placeholders. Do not expose these in production builds
-    // if you do not intend to call functions directly via fetch.
-    // Persist the Supabase URL and anon key for function fallbacks. Since we
-    // are running without a build step, import.meta.env is unavailable.
-    // Hardcode the same values used above so that functions can construct
-    // fallback URLs.
-    window.SUPABASE_URL = 'https://pgohlxaeakbxiqekkwrl.supabase.co';
-    window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI';
+    // Obtain the Supabase client from the global window object. The client is
+    // created in the top‑level module script. Do not re‑initialise it here
+    // to avoid duplicate clients and stale sessions.
+    const supabase = window.supabase;
     // Show or hide the login overlay based on login flag
     window.addEventListener('DOMContentLoaded', () => {
       const overlay = document.getElementById('login-overlay');
