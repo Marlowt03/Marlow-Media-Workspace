@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3947,25 +3948,18 @@ window.openAssignModal = function(taskId) {
   <!-- Supabase Auth script to power the login overlay -->
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    // Safely initialize Supabase. If environment variables or fallback
-    // values are not provided, the client will be replaced with a no‑op
-    // object to prevent runtime errors in offline/local file mode.
-    const sbUrl = (import.meta.env?.VITE_SUPABASE_URL || '').trim();
-    const sbKey = (import.meta.env?.VITE_SUPABASE_ANON_KEY || '').trim();
-    // Determine whether we have a valid URL/key (not empty and not the
-    // placeholder strings used in templates).
-    const haveSupabase = sbUrl && sbKey && sbUrl !== 'YOUR_FALLBACK_URL' && sbKey !== 'YOUR_FALLBACK_ANON';
+    // Initialize Supabase using explicit credentials. Because this file
+    // runs as a standalone HTML page without a build step, import.meta.env
+    // is unavailable in production. To ensure Supabase works on the
+    // deployed site, we hardcode the URL and anon key here. If you change
+    // your Supabase project or rotate keys, update these values.
+    const sbUrl = 'https://pgohlxaeakbxiqekkwrl.supabase.co';
+    const sbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI';
     let supabaseInstance;
-    if (haveSupabase) {
-      try {
-        supabaseInstance = createClient(sbUrl, sbKey);
-      } catch (err) {
-        console.warn('Supabase initialization failed:', err);
-        supabaseInstance = null;
-      }
-    }
-    if (!supabaseInstance) {
-      console.warn('Supabase disabled (no valid URL/key). Running in local/offline mode.');
+    try {
+      supabaseInstance = createClient(sbUrl, sbKey);
+    } catch (err) {
+      console.warn('Supabase initialization failed:', err);
       // Provide a minimal stub so calls to supabase.functions.invoke() do not crash
       supabaseInstance = {
         functions: {
@@ -3985,8 +3979,12 @@ window.openAssignModal = function(taskId) {
     // restrictions). These come from your Vite environment variables or
     // fallback placeholders. Do not expose these in production builds
     // if you do not intend to call functions directly via fetch.
-    window.SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'YOUR_FALLBACK_URL';
-    window.SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_FALLBACK_ANON';
+    // Persist the Supabase URL and anon key for function fallbacks. Since we
+    // are running without a build step, import.meta.env is unavailable.
+    // Hardcode the same values used above so that functions can construct
+    // fallback URLs.
+    window.SUPABASE_URL = 'https://pgohlxaeakbxiqekkwrl.supabase.co';
+    window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2hseGFlYWtieGlxZWtrd3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzU3MjEsImV4cCI6MjA3MDU1MTcyMX0.5RF__rQEwwSVFSNfbOce5YyKwc1gzH6FG8OpXbNugxI';
     // Show or hide the login overlay based on login flag
     window.addEventListener('DOMContentLoaded', () => {
       const overlay = document.getElementById('login-overlay');
