@@ -12,6 +12,30 @@
   window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
   console.log("[BUILD] supabase init injected");
 </script>
+<!-- ===== TEMP: force no-auth mode so UI renders immediately ===== -->
+<script type="module">
+  // Ensure the supabase client exists
+  if (!window.supabase) {
+    console.error("Supabase not initialized");
+  }
+
+  // Hard-set a current user object for your UI to pick up (bypass real auth)
+  window.CURRENT_USER = {
+    id: "treyven-dev",
+    name: "Treyven Marlow",
+    email: "treyven@example.com",
+    role: "owner"
+  };
+
+  // Force all filters to Team(All) so nothing is hidden by assignee
+  try {
+    localStorage.setItem("mm_view_user", "Team (All)");
+    localStorage.setItem("mm_assignee_filter", "all");
+  } catch {}
+
+  // Tiny sanity log
+  console.log("[TEMP] No-auth mode enabled. Rendering Team (All).");
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Updated version tag appended to the title so users can verify they are using the latest build -->
